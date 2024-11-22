@@ -132,7 +132,9 @@ where
                     self.do_next()
                 }
                 '.' | '0'..='9' => self.read_number(ch),
-                _ => self.read_identifier(ch),
+                ch if ch.is_alphanumeric() || ch == '_' => self.read_identifier(ch),
+                ';' => Ok(Token::EOF),
+                _ => Err(LexError::UnsupportChar(ch).into())
             }
         } else {
             Ok(Token::EOF)
@@ -143,7 +145,7 @@ where
         let mut identifier = first.to_string();
         while let Some(ch) = self.next_char()? {
             match ch {
-                ch if ch.is_alphanumeric() || ch == '_' => identifier.push(ch),
+                'a'..='z' | 'A'..='Z' | '_' => identifier.push(ch),
                 _ => {
                     self.back_seek()?;
                     break;

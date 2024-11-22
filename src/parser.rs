@@ -28,7 +28,7 @@ where
         })
     }
 
-    fn peek(&self) -> &Token {
+    pub fn peek(&self) -> &Token {
         &self.peek
     }
 
@@ -177,17 +177,21 @@ where
     /// - id => [`Token::Identifier`]
     pub fn parse_prototype(&mut self) -> Result<PrototypeAst> {
         if let Token::Identifier(fn_name) = self.pop()? {
-            if Token::LeftBracket != *(self.peek()) {
+            if &Token::LeftBracket != self.peek() {
                 return ParserError::syn_err("Expected '(' in prototype");
             }
+            // eat '('
+            self.pop()?;
 
             let mut args = Vec::new();
 
-            while let Token::Identifier(arg_name) = self.pop()? {
-                args.push(arg_name);
+            while let Token::Identifier(_) = self.peek() {
+                if let Token::Identifier(arg_name) = self.pop()? {
+                    args.push(arg_name);
+                }
             }
 
-            if Token::RightBracket != *(self.peek()) {
+            if &Token::RightBracket != self.peek() {
                 return ParserError::syn_err("Expected ')' in prototype");
             }
 

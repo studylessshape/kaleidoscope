@@ -1,5 +1,6 @@
 use crate::{error::ParserError, lex::Token};
 
+#[derive(Debug)]
 pub enum ExprAst {
     Number(f64),
     Variable(String),
@@ -7,6 +8,7 @@ pub enum ExprAst {
     Call(Box<CallExprAst>),
 }
 
+#[derive(Debug)]
 pub enum OpSymbol {
     Add,
     Sub,
@@ -28,6 +30,7 @@ impl TryFrom<Token> for OpSymbol {
     }
 }
 
+#[derive(Debug)]
 pub struct BinaryExprAst {
     pub op: OpSymbol,
     pub lhs: ExprAst,
@@ -40,6 +43,7 @@ impl BinaryExprAst {
     }
 }
 
+#[derive(Debug)]
 pub struct CallExprAst {
     pub call: String,
     pub args: Vec<ExprAst>,
@@ -51,11 +55,13 @@ impl CallExprAst {
     }
 }
 
+#[derive(Debug)]
 pub struct PrototypeAst {
     pub name: String,
     pub args: Vec<String>,
 }
 
+#[derive(Debug)]
 pub struct FunctionAst {
     pub proto: PrototypeAst,
     pub body: ExprAst,

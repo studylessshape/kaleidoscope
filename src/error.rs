@@ -44,6 +44,7 @@ impl_error_from!(
 
 #[derive(Debug)]
 pub enum LexError {
+    UnsupportChar(char),
     UnclosedString,
     ParseFloatError(std::num::ParseFloatError),
     IoError(std::io::Error),
