@@ -134,7 +134,7 @@ where
                 '.' | '0'..='9' => self.read_number(ch),
                 ch if ch.is_alphanumeric() || ch == '_' => self.read_identifier(ch),
                 ';' => Ok(Token::EOF),
-                _ => Err(LexError::UnsupportChar(ch).into())
+                _ => Err(LexError::UnsupportSymbol(ch).into())
             }
         } else {
             Ok(Token::EOF)
@@ -166,7 +166,7 @@ where
         while let Some(ch) = self.next_char()? {
             match ch {
                 ch if ch == quote => break,
-                '\n' => return Err(LexError::UnclosedString.into()),
+                '\n' => return Err(LexError::UnclosedString(quote).into()),
                 _ => str.push(ch),
             }
         }

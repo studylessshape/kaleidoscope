@@ -34,7 +34,7 @@ macro_rules! impl_error {
     };
 }
 
-impl_error!(Error, LexError, ParserError);
+impl_error!(Error);
 
 impl_error_from!(
     Error,
@@ -42,18 +42,16 @@ impl_error_from!(
     Error::ParserError => ParserError
 );
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum LexError {
-    UnsupportChar(char),
-    UnclosedString,
+    #[error("unexpected symbol: {0}")]
+    UnsupportSymbol(char),
+    #[error("string unclosed, expected close by: {0}")]
+    UnclosedString(char),
+    #[error("parse float occurs error: {0}")]
     ParseFloatError(std::num::ParseFloatError),
+    #[error("occurs io error: {0}")]
     IoError(std::io::Error),
-}
-
-impl Display for LexError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
 }
 
 impl_error_from!(
@@ -62,14 +60,16 @@ impl_error_from!(
     LexError::ParseFloatError => std::num::ParseFloatError
 );
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum ParserError {
+    #[error("{self:?}")]
     ExpectedFunctionName,
+    #[error("token '{0:?}' is unsupported operator")]
     ParseOpSymbolError(Token),
-    UnknownToken(Token),
-    UnclosedGroup,
+    #[error("unexpected token: {0:?}")]
+    UnexpectedToken(Token),
+    #[error("{0}")]
     SyntaxError(String),
-    UnexpectsError(String),
 }
 
 impl ParserError {
@@ -78,11 +78,5 @@ impl ParserError {
         S: AsRef<[u8]>,
     {
         Err(Self::SyntaxError(String::from_utf8_lossy(err.as_ref()).to_string()).into())
-    }
-}
-
-impl Display for ParserError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
     }
 }

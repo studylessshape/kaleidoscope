@@ -165,7 +165,7 @@ where
             Token::LeftBracket => self.parse_parent(),
             Token::Number(_) => self.parse_number(),
             Token::Identifier(_) => self.parse_identifier(),
-            _ => Err(ParserError::UnknownToken(self.peek().clone()).into()),
+            _ => Err(ParserError::UnexpectedToken(self.peek().clone()).into()),
         }
     }
 
