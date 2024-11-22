@@ -1,8 +1,11 @@
 use std::fmt::Display;
 
+use crate::lex::Token;
+
 #[derive(Debug)]
 pub enum Error {
     LexError(LexError),
+    ParserError(ParserError),
 }
 
 impl Display for Error {
@@ -11,14 +14,39 @@ impl Display for Error {
     }
 }
 
-impl std::error::Error for Error {
-    
+macro_rules! impl_error_from {
+    ($for:ty, $($target:path => $err:ty),+) => {
+        $(
+            impl From<$err> for $for {
+                fn from(value: $err) -> Self {
+                    $target(value)
+                }
+            }
+        )+
+    };
 }
+
+macro_rules! impl_error {
+    ($($err:ty),+) => {
+        $(
+            impl std::error::Error for $err { }
+        )+
+    };
+}
+
+impl_error!(Error, LexError, ParserError);
+
+impl_error_from!(
+    Error,
+    Error::LexError => LexError,
+    Error::ParserError => ParserError
+);
 
 #[derive(Debug)]
 pub enum LexError {
+    UnclosedString,
     ParseFloatError(std::num::ParseFloatError),
-    IoError(std::io::Error)
+    IoError(std::io::Error),
 }
 
 impl Display for LexError {
@@ -27,18 +55,33 @@ impl Display for LexError {
     }
 }
 
-impl std::error::Error for LexError {
-    
+impl_error_from!(
+    LexError,
+    LexError::IoError => std::io::Error,
+    LexError::ParseFloatError => std::num::ParseFloatError
+);
+
+#[derive(Debug)]
+pub enum ParserError {
+    ExpectedFunctionName,
+    ParseOpSymbolError(Token),
+    UnknownToken(Token),
+    UnclosedGroup,
+    SyntaxError(String),
+    UnexpectsError(String),
 }
 
-impl From<std::io::Error> for LexError {
-    fn from(value: std::io::Error) -> Self {
-        Self::IoError(value)
+impl ParserError {
+    pub fn syn_err<T, S>(err: S) -> crate::Result<T>
+    where
+        S: AsRef<[u8]>,
+    {
+        Err(Self::SyntaxError(String::from_utf8_lossy(err.as_ref()).to_string()).into())
     }
 }
 
-impl From<std::num::ParseFloatError> for LexError {
-    fn from(value: std::num::ParseFloatError) -> Self {
-        Self::ParseFloatError(value)
+impl Display for ParserError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
     }
 }

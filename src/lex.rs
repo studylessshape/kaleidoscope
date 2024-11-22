@@ -1,12 +1,10 @@
-use std::{
-    io::{Cursor, Read, Seek},
-    result,
-};
+use std::io::{Cursor, Read, Seek};
+use crate::{error::LexError, Result};
+// use crate::error::LexError;
 
-use crate::error::LexError;
+// type LexResult<T> = result::Result<T, LexError>;
 
-type LexResult<T> = result::Result<T, LexError>;
-
+#[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     /// keyword `def`
     Def,
@@ -48,11 +46,28 @@ pub enum Token {
     LessEq,
     /// symbol `>=`
     GreaEq,
+    /// char `,`
+    Comma,
     /// function or variable identifier
     Identifier(String),
     Number(f64),
     String(String),
     EOF,
+}
+
+impl Token {
+    pub fn precedence(&self) -> i8 {
+        Token::get_tok_prec(self)
+    }
+
+    pub fn get_tok_prec(token: &Self) -> i8 {
+        match token {
+            Token::LeftAngle | Token::RightAngle => 1,
+            Token::Add | Token::Minus => 5,
+            Token::Mul | Token::Div => 10,
+            _ => -1,
+        }
+    }
 }
 
 pub struct Lexer<S>
@@ -74,14 +89,25 @@ where
         }
     }
 
-    pub fn next(&mut self) -> LexResult<Token> {
+    pub fn next(&mut self) -> Result<Token> {
         match self.ahead.take() {
             Some(t) => Ok(t),
             None => self.do_next(),
         }
     }
 
-    fn do_next(&mut self) -> LexResult<Token> {
+    pub fn peek(&mut self) -> Result<&Token> {
+        if self.ahead.is_none() || self.ahead == Some(Token::EOF) {
+            self.ahead = Some(self.do_next()?);
+        }
+
+        match &self.ahead {
+            Some(ahead) => Ok(ahead),
+            None => Ok(&Token::EOF),
+        }
+    }
+
+    fn do_next(&mut self) -> Result<Token> {
         self.skip_whitespace()?;
 
         if let Some(ch) = self.next_char()? {
@@ -97,13 +123,14 @@ where
                 ']' => Ok(Token::RightSquare),
                 '{' => Ok(Token::LeftCurly),
                 '}' => Ok(Token::RightCurly),
+                ',' => Ok(Token::Comma),
                 '=' => self.read_ahead('=', Token::Equal, Token::Assign),
                 '>' => self.read_aheadf('=', |_| Ok(Token::GreaEq), |_| Ok(Token::RightAngle)),
                 '<' => self.read_aheadf('=', |_| Ok(Token::LessEq), |_| Ok(Token::LeftAngle)),
                 '#' => {
                     self.skip_comment()?;
                     self.do_next()
-                },
+                }
                 '.' | '0'..='9' => self.read_number(ch),
                 _ => self.read_identifier(ch),
             }
@@ -112,7 +139,7 @@ where
         }
     }
 
-    fn read_identifier(&mut self, first: char) -> LexResult<Token> {
+    fn read_identifier(&mut self, first: char) -> Result<Token> {
         let mut identifier = first.to_string();
         while let Some(ch) = self.next_char()? {
             match ch {
@@ -131,12 +158,13 @@ where
         }
     }
 
-    fn read_string(&mut self, quote: char) -> LexResult<Token> {
+    fn read_string(&mut self, quote: char) -> Result<Token> {
         // let mut quote_count = 1;
         let mut str = String::new();
         while let Some(ch) = self.next_char()? {
             match ch {
                 ch if ch == quote => break,
+                '\n' => return Err(LexError::UnclosedString.into()),
                 _ => str.push(ch),
             }
         }
@@ -144,20 +172,20 @@ where
         Ok(Token::String(str))
     }
 
-    fn read_ahead(&mut self, ahead: char, long: Token, short: Token) -> LexResult<Token> {
+    fn read_ahead(&mut self, ahead: char, long: Token, short: Token) -> Result<Token> {
         match self.next_char()? {
             Some(ch) if ch == ahead => Ok(long),
-            None | Some(_)=> {
+            None | Some(_) => {
                 self.back_seek()?;
                 Ok(short)
-            },
+            }
         }
     }
 
-    fn read_aheadf<L, Sh>(&mut self, ahead: char, long: L, short: Sh) -> LexResult<Token>
+    fn read_aheadf<L, Sh>(&mut self, ahead: char, long: L, short: Sh) -> Result<Token>
     where
-        L: Fn(&mut Self) -> LexResult<Token>,
-        Sh: Fn(&mut Self) -> LexResult<Token>,
+        L: Fn(&mut Self) -> Result<Token>,
+        Sh: Fn(&mut Self) -> Result<Token>,
     {
         match self.next_char()? {
             Some(ch) if ch == ahead => long(self),
@@ -168,7 +196,7 @@ where
         }
     }
 
-    fn read_number(&mut self, ahead: char) -> LexResult<Token> {
+    fn read_number(&mut self, ahead: char) -> Result<Token> {
         match ahead {
             _ => {
                 let mut num_str = ahead.to_string();
@@ -182,12 +210,15 @@ where
                     }
                 }
 
-                num_str.parse::<f64>().map(|n| Token::Number(n)).map_err(|e| e.into())
+                num_str
+                    .parse::<f64>()
+                    .map(Token::Number)
+                    .map_err(|e| Into::<LexError>::into(e).into())
             }
         }
     }
 
-    fn skip_comment(&mut self) -> LexResult<()> {
+    fn skip_comment(&mut self) -> Result<()> {
         while let Some(ch) = self.next_char()? {
             match ch {
                 '\n' => break,
@@ -198,7 +229,7 @@ where
         Ok(())
     }
 
-    fn skip_whitespace(&mut self) -> LexResult<()> {
+    fn skip_whitespace(&mut self) -> Result<()> {
         while let Some(ch) = self.next_char()? {
             if ch.is_whitespace() {
                 continue;
@@ -211,9 +242,9 @@ where
         Ok(())
     }
 
-    fn next_char(&mut self) -> LexResult<Option<char>> {
+    fn next_char(&mut self) -> Result<Option<char>> {
         let mut buf: [u8; 1] = [0];
-        let read_size = self.input.read(&mut buf)?;
+        let read_size = self.input.read(&mut buf).map_err(Into::<LexError>::into)?;
         if read_size >= 1 {
             Ok(Some(buf[0] as char))
         } else {
@@ -221,9 +252,9 @@ where
         }
     }
 
-    fn back_seek(&mut self) -> LexResult<u64> {
+    fn back_seek(&mut self) -> Result<u64> {
         self.input
             .seek(std::io::SeekFrom::Current(-1))
-            .map_err(|e| e.into())
+            .map_err(|e| Into::<LexError>::into(e).into())
     }
 }

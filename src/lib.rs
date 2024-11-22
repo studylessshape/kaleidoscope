@@ -4,7 +4,7 @@ use error::Error;
 
 pub mod lex;
 pub mod error;
-pub mod expr;
+pub mod ast;
 pub mod parser;
 
 type Result<T> = result::Result<T, Error>;
