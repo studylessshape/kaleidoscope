@@ -79,6 +79,7 @@ where
     /// ```
     ///
     /// - number => [`Token::Number`]
+    /// - numberexpr => [`ExprAst::Number`]
     pub fn parse_number(&mut self) -> Result<ExprAst> {
         let token = self.pop()?;
         if let Token::Number(number) = token {
@@ -112,6 +113,7 @@ where
     ///
     /// - identifier => [`Token::Identifier`]
     /// - expression => [`Parser::parse_expr`]
+    /// - identifierexpr => [`ExprAst::Variable`] or [`ExprAst::Call`]
     pub fn parse_identifier(&mut self) -> Result<ExprAst> {
         let token = self.pop()?;
         if let Token::Identifier(identifier) = token {

@@ -3,7 +3,12 @@ name = "kaleidoscope-rs"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-thiserror = "2.0.3"
+[worksapce]
+members = [
+    "crates/*"
+]
 
-[worksapce.dependencies]
+[dependencies]
+llvm-bind = { version = "0.1.0", path = "crates/llvm-bind" }
+llvm-sys = "191"
+thiserror = "2.0.3"
