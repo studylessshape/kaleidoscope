@@ -62,6 +62,14 @@ impl_error_from!(
 
 #[derive(Debug, thiserror::Error)]
 pub enum ParserError {
+    #[error("Unknow function: {0}")]
+    UnknowFunction(String),
+    #[error("Incorrect args count, expected {0}, but get {1}")]
+    IncorrectArguments(usize, usize),
+    #[error("Compile Function args error")]
+    FunctionArgumentsError,
+    #[error("Unknow variable name: {0}")]
+    UnknowVariableName(String),
     #[error("{self:?}")]
     ExpectedFunctionName,
     #[error("token '{0:?}' is unsupported operator")]
