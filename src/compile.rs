@@ -7,14 +7,14 @@ use llvm_sys::{
 };
 use crate::{ast::{Codegen, ExprAst, OpSymbol}, error::ParserError, Result};
 
-pub struct RuntimeBuilder {
+pub struct Compiler {
     context: LLVMContextRef,
     builder: LLVMBuilderRef,
     module: LLVMModuleRef,
     names: HashMap<String, LLVMValueRef>,
 }
 
-impl RuntimeBuilder {
+impl Compiler {
     pub fn new() -> Self {
         unsafe {
             let context = LLVMContextCreate();

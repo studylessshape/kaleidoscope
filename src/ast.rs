@@ -8,12 +8,12 @@ use llvm_sys::execution_engine::LLVMCreateGenericValueOfFloat;
 use llvm_sys::prelude::{LLVMContextRef, LLVMValueRef};
 use llvm_sys::LLVMValue;
 
-use crate::runtime::RuntimeBuilder;
+use crate::compile::Compiler;
 use crate::Result;
 use crate::{error::ParserError, lex::Token};
 
 pub trait Codegen {
-    fn codegen(&self, builder: &mut RuntimeBuilder) -> Result<LLVMValueRef>;
+    fn codegen(&self, builder: &mut Compiler) -> Result<LLVMValueRef>;
 }
 
 #[derive(Debug)]
@@ -25,7 +25,7 @@ pub enum ExprAst {
 }
 
 impl Codegen for ExprAst {
-    fn codegen(&self, builder: &mut RuntimeBuilder) -> Result<LLVMValueRef> {
+    fn codegen(&self, builder: &mut Compiler) -> Result<LLVMValueRef> {
         match self {
             ExprAst::Number(f) => Ok(builder.const_double(*f)),
             ExprAst::Variable(name) => match builder.variable(name) {
@@ -76,7 +76,7 @@ impl BinaryExprAst {
 }
 
 impl Codegen for BinaryExprAst {
-    fn codegen(&self, builder: &mut RuntimeBuilder) -> Result<LLVMValueRef> {
+    fn codegen(&self, builder: &mut Compiler) -> Result<LLVMValueRef> {
         let left = self.lhs.codegen(builder)?;
         let right = self.rhs.codegen(builder)?;
 
@@ -105,7 +105,7 @@ impl CallExprAst {
 }
 
 impl Codegen for CallExprAst {
-    fn codegen(&self, builder: &mut RuntimeBuilder) -> Result<LLVMValueRef> {
+    fn codegen(&self, builder: &mut Compiler) -> Result<LLVMValueRef> {
         todo!()
     }
 }

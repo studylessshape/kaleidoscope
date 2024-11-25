@@ -7,6 +7,6 @@ pub mod error;
 pub mod ast;
 pub mod parser;
 pub mod code_ir;
-pub mod runtime;
+pub mod compile;
 
 type Result<T> = result::Result<T, Error>;
