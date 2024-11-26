@@ -109,8 +109,20 @@ pub struct PrototypeAst {
     pub args: Vec<String>,
 }
 
+impl Codegen for PrototypeAst {
+    fn codegen(&self, compiler: &mut Compiler) -> Result<LLVMValueRef> {
+        Ok(compiler.create_proto(&self.name, &self.args))
+    }
+}
+
 #[derive(Debug)]
 pub struct FunctionAst {
     pub proto: PrototypeAst,
     pub body: ExprAst,
+}
+
+impl Codegen for FunctionAst {
+    fn codegen(&self, compiler: &mut Compiler) -> Result<LLVMValueRef> {
+        compiler.create_function(self)
+    }
 }

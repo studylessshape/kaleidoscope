@@ -132,6 +132,7 @@ where
                         let peek = self.peek();
 
                         if let Token::RightBracket = peek {
+                            self.pop()?;
                             break;
                         }
 

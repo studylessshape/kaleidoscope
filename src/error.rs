@@ -90,6 +90,7 @@ pub enum CompileError {
     UnknowFunction(String),
     IncorrectArguments{expect: usize, get: usize},
     FunctionArgumentIsNull,
+    FunctionRedifined,
 }
 
 impl Display for CompileError {
