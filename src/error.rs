@@ -6,6 +6,7 @@ use crate::lex::Token;
 pub enum Error {
     LexError(LexError),
     ParserError(ParserError),
+    CompileError(CompileError)
 }
 
 impl Display for Error {
@@ -39,7 +40,8 @@ impl_error!(Error);
 impl_error_from!(
     Error,
     Error::LexError => LexError,
-    Error::ParserError => ParserError
+    Error::ParserError => ParserError,
+    Error::CompileError => CompileError
 );
 
 #[derive(Debug, thiserror::Error)]
@@ -62,14 +64,6 @@ impl_error_from!(
 
 #[derive(Debug, thiserror::Error)]
 pub enum ParserError {
-    #[error("Unknow function: {0}")]
-    UnknowFunction(String),
-    #[error("Incorrect args count, expected {0}, but get {1}")]
-    IncorrectArguments(usize, usize),
-    #[error("Compile Function args error")]
-    FunctionArgumentsError,
-    #[error("Unknow variable name: {0}")]
-    UnknowVariableName(String),
     #[error("{self:?}")]
     ExpectedFunctionName,
     #[error("token '{0:?}' is unsupported operator")]
@@ -88,3 +82,20 @@ impl ParserError {
         Err(Self::SyntaxError(String::from_utf8_lossy(err.as_ref()).to_string()).into())
     }
 }
+
+#[derive(Debug)]
+pub enum CompileError {
+    PointerIsNull,
+    UnknowVariableName(String),
+    UnknowFunction(String),
+    IncorrectArguments{expect: usize, get: usize},
+    FunctionArgumentIsNull,
+}
+
+impl Display for CompileError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl_error!(CompileError);

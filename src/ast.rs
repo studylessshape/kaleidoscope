@@ -1,19 +1,12 @@
-use std::ptr::null;
-
-use llvm_sys::core::{
-    LLVMBFloatTypeInContext, LLVMConstReal, LLVMContextCreate, LLVMCreateBuilder,
-    LLVMCreateBuilderInContext, LLVMDoubleType,
-};
-use llvm_sys::execution_engine::LLVMCreateGenericValueOfFloat;
-use llvm_sys::prelude::{LLVMContextRef, LLVMValueRef};
-use llvm_sys::LLVMValue;
+use llvm_sys::prelude::LLVMValueRef;
 
 use crate::compile::Compiler;
+use crate::error::CompileError;
 use crate::Result;
 use crate::{error::ParserError, lex::Token};
 
 pub trait Codegen {
-    fn codegen(&self, builder: &mut Compiler) -> Result<LLVMValueRef>;
+    fn codegen(&self, compiler: &mut Compiler) -> Result<LLVMValueRef>;
 }
 
 #[derive(Debug)]
@@ -25,15 +18,15 @@ pub enum ExprAst {
 }
 
 impl Codegen for ExprAst {
-    fn codegen(&self, builder: &mut Compiler) -> Result<LLVMValueRef> {
+    fn codegen(&self, compiler: &mut Compiler) -> Result<LLVMValueRef> {
         match self {
-            ExprAst::Number(f) => Ok(builder.const_double(*f)),
-            ExprAst::Variable(name) => match builder.variable(name) {
+            ExprAst::Number(f) => Ok(compiler.const_double(*f)),
+            ExprAst::Variable(name) => match compiler.variable(name) {
                 Some(val) => Ok(val),
-                None => Err(ParserError::UnknowVariableName(name.clone()).into()),
+                None => Err(CompileError::UnknowVariableName(name.clone()).into()),
             },
-            ExprAst::Binary(binary_expr_ast) => todo!(),
-            ExprAst::Call(call_expr_ast) => todo!(),
+            ExprAst::Binary(binary_expr_ast) => binary_expr_ast.codegen(compiler),
+            ExprAst::Call(call_expr_ast) => call_expr_ast.codegen(compiler),
         }
     }
 }
@@ -76,9 +69,9 @@ impl BinaryExprAst {
 }
 
 impl Codegen for BinaryExprAst {
-    fn codegen(&self, builder: &mut Compiler) -> Result<LLVMValueRef> {
-        let left = self.lhs.codegen(builder)?;
-        let right = self.rhs.codegen(builder)?;
+    fn codegen(&self, compiler: &mut Compiler) -> Result<LLVMValueRef> {
+        let left = self.lhs.codegen(compiler)?;
+        let right = self.rhs.codegen(compiler)?;
 
         let name = match self.op {
             OpSymbol::Add => "addtmp",
@@ -88,7 +81,7 @@ impl Codegen for BinaryExprAst {
             OpSymbol::Less | OpSymbol::Greater => "cmptmp",
         };
 
-        Ok(builder.create_binary(left, right, name, self.op))
+        Ok(compiler.create_binary(left, right, name, self.op))
     }
 }
 
@@ -105,8 +98,8 @@ impl CallExprAst {
 }
 
 impl Codegen for CallExprAst {
-    fn codegen(&self, builder: &mut Compiler) -> Result<LLVMValueRef> {
-        todo!()
+    fn codegen(&self, compiler: &mut Compiler) -> Result<LLVMValueRef> {
+        compiler.create_call(self.call.as_str(), &self.args, "calltmp")
     }
 }
 
