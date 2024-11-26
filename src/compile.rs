@@ -8,7 +8,7 @@ use crate::{
 use llvm_sys::{
     analysis::LLVMVerifyFunction,
     core::{
-        LLVMAddFunction, LLVMAppendBasicBlockInContext, LLVMBuildCall2, LLVMBuildFAdd, LLVMBuildFCmp, LLVMBuildFDiv, LLVMBuildFMul, LLVMBuildFSub, LLVMBuildRet, LLVMBuildUIToFP, LLVMConstReal, LLVMContextCreate, LLVMCountBasicBlocks, LLVMCountParams, LLVMCreateBuilderInContext, LLVMDoubleTypeInContext, LLVMEraseGlobalIFunc, LLVMFunctionType, LLVMGetNamedFunction, LLVMGetParams, LLVMGlobalGetValueType, LLVMModuleCreateWithNameInContext, LLVMPositionBuilderAtEnd, LLVMPrintModuleToString, LLVMPrintValueToString, LLVMSetValueName2
+        LLVMAddFunction, LLVMAppendBasicBlockInContext, LLVMBuildCall2, LLVMBuildFAdd, LLVMBuildFCmp, LLVMBuildFDiv, LLVMBuildFMul, LLVMBuildFSub, LLVMBuildRet, LLVMBuildUIToFP, LLVMConstReal, LLVMContextCreate, LLVMCountBasicBlocks, LLVMCountParams, LLVMCreateBuilderInContext, LLVMDoubleTypeInContext, LLVMEraseGlobalIFunc, LLVMFunctionType, LLVMGetNamedFunction, LLVMGetParams, LLVMGlobalGetValueType, LLVMModuleCreateWithNameInContext, LLVMPositionBuilderAtEnd, LLVMPrintModuleToString, LLVMPrintValueToString, LLVMSetDataLayout, LLVMSetValueName2
     },
     prelude::*,
     LLVMRealPredicate,
@@ -32,9 +32,12 @@ impl Compiler {
         unsafe {
             let context = LLVMContextCreate();
             let name = CString::new("my tool jit").unwrap();
+            let module = LLVMModuleCreateWithNameInContext(name.as_ptr(), context);
+            // LLVMSetDataLayout(module, LLVMGetLay);
+
             Self {
                 builder: LLVMCreateBuilderInContext(context),
-                module: LLVMModuleCreateWithNameInContext(name.as_ptr(), context),
+                module,
                 context,
                 names: HashMap::new(),
             }
