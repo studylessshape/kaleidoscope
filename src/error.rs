@@ -91,6 +91,7 @@ pub enum CompileError {
     IncorrectArguments{expect: usize, get: usize},
     FunctionArgumentIsNull,
     FunctionRedifined,
+    CreateJitError(std::io::Error)
 }
 
 impl Display for CompileError {
@@ -100,3 +101,4 @@ impl Display for CompileError {
 }
 
 impl_error!(CompileError);
+impl_error_from!(CompileError, CompileError::CreateJitError => std::io::Error);

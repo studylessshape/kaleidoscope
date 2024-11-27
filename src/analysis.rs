@@ -5,7 +5,7 @@ use llvm_sys::{
     transforms::pass_builder::*,
 };
 
-use crate::bool_to_i32;
+use crate::bool_to_llvm;
 
 pub struct PassManager {
     pass_manager: LLVMPassManagerRef,
@@ -18,7 +18,7 @@ macro_rules! impl_enable_for_builder_options {
         $(
             pub fn $func_name(&self, enable: bool) -> &Self {
                 unsafe {
-                    $target(self.options, bool_to_i32(enable));
+                    $target(self.options, bool_to_llvm(enable));
                 }
 
                 self

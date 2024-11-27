@@ -145,7 +145,7 @@ where
         let mut identifier = first.to_string();
         while let Some(ch) = self.next_char()? {
             match ch {
-                'a'..='z' | 'A'..='Z' | '_' => identifier.push(ch),
+                'a'..='z' | 'A'..='Z' | '_' | '0'..='9' => identifier.push(ch),
                 _ => {
                     self.back_seek()?;
                     break;

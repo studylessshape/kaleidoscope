@@ -7,7 +7,7 @@ use kaleidoscope_rs::{ast::Codegen, compile::Compiler, lex::Token, parser::Parse
 
 fn main() -> Result<()> {
     let mut stdout = stdout().lock();
-    let compiler = Compiler::default();
+    let compiler = Compiler::new().unwrap();
 
     let rc_compiler = RefCell::new(compiler);
     loop {

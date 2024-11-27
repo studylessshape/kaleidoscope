@@ -1,14 +1,12 @@
 use std::{cell::RefCell, collections::HashMap, ffi::CString, mem::forget};
 
 use crate::{
-    ast::{Codegen, ExprAst, FunctionAst, OpSymbol},
-    error::CompileError,
-    Result,
+    ast::{Codegen, ExprAst, FunctionAst, OpSymbol}, error::CompileError, jit::KaleicoscopeJit, Result
 };
 use llvm_sys::{
     analysis::LLVMVerifyFunction,
     core::{
-        LLVMAddFunction, LLVMAppendBasicBlockInContext, LLVMBuildCall2, LLVMBuildFAdd, LLVMBuildFCmp, LLVMBuildFDiv, LLVMBuildFMul, LLVMBuildFSub, LLVMBuildRet, LLVMBuildUIToFP, LLVMConstReal, LLVMContextCreate, LLVMCountBasicBlocks, LLVMCountParams, LLVMCreateBuilderInContext, LLVMDoubleTypeInContext, LLVMEraseGlobalIFunc, LLVMFunctionType, LLVMGetNamedFunction, LLVMGetParams, LLVMGlobalGetValueType, LLVMModuleCreateWithNameInContext, LLVMPositionBuilderAtEnd, LLVMPrintModuleToString, LLVMPrintValueToString, LLVMSetDataLayout, LLVMSetValueName2
+        LLVMAddFunction, LLVMAppendBasicBlockInContext, LLVMBuildCall2, LLVMBuildFAdd, LLVMBuildFCmp, LLVMBuildFDiv, LLVMBuildFMul, LLVMBuildFSub, LLVMBuildRet, LLVMBuildUIToFP, LLVMConstReal, LLVMContextCreate, LLVMCountBasicBlocks, LLVMCountParams, LLVMCreateBuilderInContext, LLVMCreateFunctionPassManagerForModule, LLVMCreatePassManager, LLVMDoubleTypeInContext, LLVMEraseGlobalIFunc, LLVMFunctionType, LLVMGetNamedFunction, LLVMGetParams, LLVMGlobalGetValueType, LLVMInitializeFunctionPassManager, LLVMModuleCreateWithNameInContext, LLVMPositionBuilderAtEnd, LLVMPrintModuleToString, LLVMPrintValueToString, LLVMRunFunctionPassManager, LLVMSetDataLayout, LLVMSetValueName2
     },
     prelude::*,
     LLVMRealPredicate,
@@ -17,30 +15,26 @@ use llvm_sys::{
 pub struct Compiler {
     context: LLVMContextRef,
     builder: LLVMBuilderRef,
-    module: LLVMModuleRef,
+    pub(crate) module: LLVMModuleRef,
     names: HashMap<String, LLVMValueRef>,
-}
-
-impl Default for Compiler {
-    fn default() -> Self {
-        Self::new()
-    }
+    jit: KaleicoscopeJit,
 }
 
 impl Compiler {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self> {
         unsafe {
             let context = LLVMContextCreate();
             let name = CString::new("my tool jit").unwrap();
             let module = LLVMModuleCreateWithNameInContext(name.as_ptr(), context);
             // LLVMSetDataLayout(module, LLVMGetLay);
 
-            Self {
+            Ok(Self {
                 builder: LLVMCreateBuilderInContext(context),
                 module,
                 context,
                 names: HashMap::new(),
-            }
+                jit: KaleicoscopeJit::create().map_err(|e| Into::<CompileError>::into(e))?,
+            })
         }
     }
 
@@ -229,6 +223,11 @@ impl Compiler {
                         llvm_sys::analysis::LLVMVerifierFailureAction::LLVMPrintMessageAction,
                     );
 
+                    let pass = LLVMCreateFunctionPassManagerForModule(self.module);
+                    LLVMInitializeFunctionPassManager(pass);
+
+                    LLVMRunFunctionPassManager(pass, function);
+
                     Ok(function)
                 }
                 Err(e) => {
@@ -265,7 +264,7 @@ mod test {
         let mut parser = Parser::new("def bar(a) foo(a, 4.0) + bar(31337);").unwrap();
         let ast = parser.parse_definition().unwrap();
 
-        let mut compiler = Compiler::new();
+        let mut compiler = Compiler::new().unwrap();
         match ast.codegen(&mut compiler) {
             Ok(val) => println!("{}", compiler.print(val)),
             Err(er) => println!("{:?}", er),
